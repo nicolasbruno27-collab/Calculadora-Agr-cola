@@ -9,8 +9,8 @@
    (Settings -> API). NO uses la clave "secret", solo la
    publishable. Es seguro que la publishable quede en el código.
    --------------------------------------------------------- */
-const SUPABASE_URL = "PEGÁ_TU_URL_ACÁ";          // ej: https://xxxxx.supabase.co
-const SUPABASE_KEY = "PEGÁ_TU_KEY_ACÁ";          // ej: sb_publishable_xxxxx
+const SUPABASE_URL = "https://yqvgjrjjlbcmuyhjvwgl.supabase.co/rest/v1/";          // ej: https://xxxxx.supabase.co
+const SUPABASE_KEY = "sb_publishable_NCmZQ0iZQwD3TP_qpfiaCw_dLsog9Cw";          // ej: sb_publishable_xxxxx
 
 /* --------------------------------------------------------- */
 
