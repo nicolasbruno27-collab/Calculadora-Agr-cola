@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión Agrícola — Indiferencia y rentabilidad de lotes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><i class="ti ti-plant-2" aria-hidden="true"></i></div>
+      <div class="brand-text">
+        <h1>Gestión Agrícola</h1>
+        <span>Indiferencia · Rentabilidad · Campaña</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="conn-status" class="conn-status conn-checking" title="Estado de conexión">
+        <i class="ti ti-loader-2 spin" aria-hidden="true"></i> Conectando
+      </span>
+      <label class="campaign-pick">
+        <span>Campaña</span>
+        <select id="campaign">
+          <option>24/25</option>
+          <option>25/26</option>
+          <option>26/27</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab is-active" id="tab-nuevo" onclick="App.switchTab('nuevo')" role="tab"><i class="ti ti-circle-plus" aria-hidden="true"></i> Nuevo lote</button>
+    <button class="tab" id="tab-lotes" onclick="App.switchTab('lotes')" role="tab"><i class="ti ti-list-details" aria-hidden="true"></i> Mis lotes <span class="tab-count" id="lote-count">0</span></button>
+    <button class="tab" id="tab-resumen" onclick="App.switchTab('resumen')" role="tab"><i class="ti ti-chart-pie" aria-hidden="true"></i> Resumen</button>
+    <button class="tab" id="tab-simulador" onclick="App.switchTab('simulador')" role="tab"><i class="ti ti-flask" aria-hidden="true"></i> Simulador</button>
+  </nav>
+
+  <!-- ============ PESTAÑA: NUEVO LOTE ============ -->
+  <section id="panel-nuevo" class="panel is-active">
+
+    <div class="card">
+      <div class="card-head"><i class="ti ti-tag" aria-hidden="true"></i> Identificación del lote</div>
+      <div class="grid grid-3">
+        <label class="field"><span>Nombre del lote</span><input type="text" id="n-nombre" placeholder="Ej: Lote Norte 1"></label>
+        <label class="field"><span>Cereal sembrado</span>
+          <select id="n-cereal">
+            <option value="Soja">Soja</option>
+            <option value="Maíz">Maíz</option>
+            <option value="Trigo">Trigo</option>
+            <option value="Cebada">Cebada</option>
+            <option value="Avena">Avena</option>
+            <option value="Girasol">Girasol</option>
+          </select>
+        </label>
+        <label class="field"><span>Hectáreas</span><input type="number" id="n-hectareas" value="100" min="1" step="1"></label>
+      </div>
+      <div class="grid grid-2">
+        <label class="field"><span>% Participación del productor</span><input type="number" id="n-participacion" value="100" min="1" max="100" step="1"></label>
+        <label class="field"><span>Campaña</span><input type="text" id="n-campana" value="24/25"></label>
+      </div>
+    </div>
+
+    <div class="grid grid-2 grid-gap">
+      <div class="stack">
+        <div class="card">
+          <div class="card-head"><i class="ti ti-coins" aria-hidden="true"></i> Costos proyectados (USD/Ha)</div>
+          <label class="field"><span>Total insumos</span><input type="number" id="n-insumos" value="350" step="1"></label>
+          <label class="field"><span>Total labores</span><input type="number" id="n-labores" value="120" step="1"></label>
+          <hr class="rule">
+          <label class="field"><span>Tipo de alquiler</span>
+            <select id="n-tipo-alquiler" onchange="App.refreshRentInputs()">
+              <option value="fixed">Fijo (USD/Ha)</option>
+              <option value="qq">Quintales (QQ)</option>
+              <option value="pct">A porcentaje (%)</option>
+            </select>
+          </label>
+          <div id="rent-fixed"><label class="field"><span>Alquiler fijo (USD/Ha)</span><input type="number" id="n-alq-fijo" value="150" step="1"></label></div>
+          <div id="rent-qq" hidden>
+            <div class="grid grid-2">
+              <label class="field"><span>Quintales (QQ)</span><input type="number" id="n-alq-qq" value="10" step="0.5"></label>
+              <label class="field"><span>Precio soja (USD/Ton)</span><input type="number" id="n-alq-soja" value="280" step="1"></label>
+            </div>
+          </div>
+          <div id="rent-pct" hidden><label class="field"><span>% Alquiler (del ingreso)</span><input type="number" id="n-alq-pct" value="25" min="0" max="100" step="0.5"></label></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><i class="ti ti-trending-up" aria-hidden="true"></i> Mercado proyectado</div>
+          <label class="field"><span>Precio esperado (USD/Ton)</span><input type="number" id="n-precio-esp" value="280" step="1"></label>
+          <label class="field"><span>Gastos comerciales estimados (%)</span><input type="number" id="n-gc-pct" value="3.5" step="0.1"></label>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="result-panel">
+          <div class="result-head"><i class="ti ti-target-arrow" aria-hidden="true"></i> Rinde de indiferencia proyectado</div>
+          <div class="grid grid-2 grid-gap-sm">
+            <div class="ind-tile">
+              <span class="ind-tile-label">Por hectárea</span>
+              <strong class="ind-tile-value" id="r-ind-ha">—</strong>
+              <span class="ind-tile-note">mínimo para cubrir costos</span>
+            </div>
+            <div class="ind-tile">
+              <span class="ind-tile-label">Total lote (<span id="r-ind-ha-cnt">100</span> Ha)</span>
+              <strong class="ind-tile-value" id="r-ind-tot">—</strong>
+              <span class="ind-tile-note">Kg/Ha × hectáreas</span>
+            </div>
+          </div>
+          <p class="result-sub">Porción neta del productor: <strong id="r-pct">100</strong>%</p>
+          <hr class="rule">
+          <div class="grid grid-3 grid-gap-sm">
+            <div class="metric"><span class="metric-label">Costo neto/Ha</span><strong class="metric-value" id="r-costo">—</strong></div>
+            <div class="metric"><span class="metric-label">Precio neto/Ton</span><strong class="metric-value" id="r-precio">—</strong></div>
+            <div class="metric"><span class="metric-label">Inversión total</span><strong class="metric-value accent" id="r-inv">—</strong></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><i class="ti ti-chart-donut-3" aria-hidden="true"></i> Composición de costos</div>
+          <div class="legend" id="leg-comp"></div>
+          <div class="chart-box chart-box-sm"><canvas id="chart-comp" role="img" aria-label="Composición de costos proyectados">Composición de costos.</canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><i class="ti ti-lock-open" aria-hidden="true"></i> Cierre del lote <span class="card-head-note">completar al cosechar</span></div>
+      <div class="grid grid-4">
+        <label class="field"><span>Rinde real (Kg/Ha)</span><input type="number" id="n-rinde-real" placeholder="Ej: 3200" step="10"></label>
+        <label class="field"><span>Precio venta real (USD/Ton)</span><input type="number" id="n-precio-real" placeholder="Ej: 295" step="1"></label>
+        <label class="field"><span>Tipo gasto comercial</span>
+          <select id="n-gc-tipo" onchange="App.refreshGcInputs()">
+            <option value="pct">Porcentaje (%)</option>
+            <option value="usd">USD/Ha</option>
+            <option value="ars">ARS/Ha</option>
+          </select>
+        </label>
+        <label class="field"><span id="n-gc-label">Gastos comerciales (%)</span><input type="number" id="n-gc-valor" value="3.5" step="0.1"></label>
+      </div>
+      <div id="ars-row" hidden>
+        <label class="field field-narrow"><span>Tipo de cambio (ARS/USD)</span><input type="number" id="n-tc-ars" value="1200" step="10"></label>
+      </div>
+
+      <div id="cierre-preview" hidden>
+        <hr class="rule">
+        <p class="preview-title">Vista previa del cierre</p>
+        <div class="grid grid-2 grid-gap-sm">
+          <div class="real-tile">
+            <span class="real-tile-label">Rinde real por Ha</span>
+            <strong class="real-tile-value" id="r-rreal-ha">—</strong>
+          </div>
+          <div class="real-tile">
+            <span class="real-tile-label">Rinde real total lote</span>
+            <strong class="real-tile-value" id="r-rreal-tot">—</strong>
+          </div>
+        </div>
+        <div class="grid grid-4 grid-gap-sm">
+          <div class="metric"><span class="metric-label">Indiferencia real/Ha</span><strong class="metric-value accent" id="r-indr-ha">—</strong></div>
+          <div class="metric"><span class="metric-label">Indiferencia real total</span><strong class="metric-value accent" id="r-indr-tot">—</strong></div>
+          <div class="metric"><span class="metric-label">Excedente s/indif.</span><strong class="metric-value" id="r-exc">—</strong></div>
+          <div class="metric"><span class="metric-label">Margen neto/Ha</span><strong class="metric-value" id="r-margen">—</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" onclick="App.clearForm()"><i class="ti ti-eraser" aria-hidden="true"></i> Limpiar</button>
+      <button class="btn btn-primary" id="btn-guardar" onclick="App.saveLote()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar lote</button>
+    </div>
+    <div id="toast-nuevo" class="toast" hidden></div>
+  </section>
+
+  <!-- ============ PESTAÑA: MIS LOTES ============ -->
+  <section id="panel-lotes" class="panel">
+    <div class="card">
+      <div class="card-head-row">
+        <div class="card-head"><i class="ti ti-list-details" aria-hidden="true"></i> Lotes — campaña <span id="lotes-camp">24/25</span></div>
+        <div class="filters">
+          <select id="f-cereal" onchange="App.renderLotes()">
+            <option value="">Todos los cereales</option>
+            <option>Soja</option><option>Maíz</option><option>Trigo</option>
+            <option>Cebada</option><option>Avena</option><option>Girasol</option>
+          </select>
+          <select id="f-estado" onchange="App.renderLotes()">
+            <option value="">Todos</option>
+            <option value="abierto">Abiertos</option>
+            <option value="cerrado">Cerrados</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Lote</th><th>Cereal</th><th class="num">Ha</th><th class="num">Part.</th>
+              <th class="num">Costo/Ha</th><th class="num">Ind./Ha</th><th class="num">Ind. total</th>
+              <th class="num">Rinde/Ha</th><th class="num">Rinde tot.</th>
+              <th class="num">Margen/Ha</th><th class="num">Total lote</th>
+              <th>Estado</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="lotes-body"></tbody>
+        </table>
+      </div>
+      <div id="lotes-empty" class="empty" hidden>
+        <i class="ti ti-seeding" aria-hidden="true"></i>
+        <p>Todavía no hay lotes en esta campaña.</p>
+        <button class="btn btn-primary" onclick="App.switchTab('nuevo')"><i class="ti ti-circle-plus" aria-hidden="true"></i> Cargar el primero</button>
+      </div>
+      <hr class="rule">
+      <div class="grid grid-4 grid-gap-sm">
+        <div class="metric"><span class="metric-label">Total hectáreas</span><strong class="metric-value" id="s-ha">—</strong></div>
+        <div class="metric"><span class="metric-label">Inversión total</span><strong class="metric-value accent" id="s-inv">—</strong></div>
+        <div class="metric"><span class="metric-label">Ingreso total</span><strong class="metric-value" id="s-ing">—</strong></div>
+        <div class="metric"><span class="metric-label">Resultado neto</span><strong class="metric-value" id="s-res">—</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PESTAÑA: RESUMEN ============ -->
+  <section id="panel-resumen" class="panel">
+    <div class="card">
+      <div class="card-head"><i class="ti ti-gauge" aria-hidden="true"></i> Resumen — campaña <span id="res-camp">24/25</span></div>
+      <div class="grid grid-4 grid-gap-sm">
+        <div class="metric"><span class="metric-label">Lotes totales</span><strong class="metric-value" id="res-lotes">0</strong></div>
+        <div class="metric"><span class="metric-label">Hectáreas totales</span><strong class="metric-value" id="res-ha">0</strong></div>
+        <div class="metric"><span class="metric-label">Resultado neto total</span><strong class="metric-value" id="res-total">—</strong></div>
+        <div class="metric"><span class="metric-label">Lotes cerrados</span><strong class="metric-value" id="res-cerrados">0</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><i class="ti ti-seeding-2" aria-hidden="true"></i> Resultado por cultivo</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Cultivo</th><th class="num">Lotes</th><th class="num">Ha</th>
+              <th class="num">Inversión</th><th class="num">Ingreso</th><th class="num">Resultado</th>
+              <th class="num">Margen/Ha</th><th class="num">Ind./Ha prom.</th><th class="num">Rinde/Ha prom.</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="cultivo-body"></tbody>
+        </table>
+      </div>
+      <div id="cultivo-empty" class="empty empty-sm" hidden><p>Sin datos de cultivos en esta campaña.</p></div>
+    </div>
+
+    <div class="grid grid-2 grid-gap">
+      <div class="card">
+        <div class="card-head"><i class="ti ti-stairs" aria-hidden="true"></i> Cascada de rentabilidad</div>
+        <p class="chart-hint">De ingreso bruto a margen neto (promedio ponderado de lotes cerrados, USD/Ha)</p>
+        <div class="chart-box"><canvas id="chart-waterfall" role="img" aria-label="Cascada de rentabilidad">Cascada de rentabilidad.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><i class="ti ti-arrows-diff" aria-hidden="true"></i> Proyectado vs real</div>
+        <p class="chart-hint">Rinde e indiferencia: lo esperado contra lo obtenido (Kg/Ha)</p>
+        <div class="legend" id="leg-pvr"></div>
+        <div class="chart-box"><canvas id="chart-pvr" role="img" aria-label="Proyectado versus real">Proyectado versus real.</canvas></div>
+      </div>
+    </div>
+
+    <div class="grid grid-2 grid-gap">
+      <div class="card">
+        <div class="card-head"><i class="ti ti-trophy" aria-hidden="true"></i> Ranking de rentabilidad</div>
+        <p class="chart-hint">Lotes ordenados por margen neto por hectárea (USD/Ha)</p>
+        <div class="chart-box chart-box-tall"><canvas id="chart-ranking" role="img" aria-label="Ranking de rentabilidad por lote">Ranking de rentabilidad.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><i class="ti ti-chart-dots" aria-hidden="true"></i> Hectáreas por cultivo</div>
+        <p class="chart-hint">Distribución de la superficie sembrada</p>
+        <div class="legend" id="leg-haxc"></div>
+        <div class="chart-box"><canvas id="chart-haxc" role="img" aria-label="Hectáreas por cultivo">Hectáreas por cultivo.</canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PESTAÑA: SIMULADOR ============ -->
+  <section id="panel-simulador" class="panel">
+    <div class="sim-banner">
+      <i class="ti ti-flask" aria-hidden="true"></i>
+      <div>
+        <strong>Modo pizarra.</strong> Probá escenarios libremente. Nada de lo que cargues acá se guarda ni afecta tus lotes, hasta que decidas convertirlo en lote real.
+      </div>
+    </div>
+
+    <div class="grid grid-2 grid-gap">
+      <div class="stack">
+        <div class="card">
+          <div class="card-head"><i class="ti ti-adjustments" aria-hidden="true"></i> Escenario</div>
+          <div class="grid grid-2">
+            <label class="field"><span>Cereal</span>
+              <select id="sim-cereal">
+                <option value="Soja">Soja</option><option value="Maíz">Maíz</option><option value="Trigo">Trigo</option>
+                <option value="Cebada">Cebada</option><option value="Avena">Avena</option><option value="Girasol">Girasol</option>
+              </select>
+            </label>
+            <label class="field"><span>Hectáreas</span><input type="number" id="sim-hectareas" value="100" min="1" step="1"></label>
+          </div>
+          <label class="field"><span>% Participación</span><input type="number" id="sim-participacion" value="100" min="1" max="100" step="1"></label>
+          <hr class="rule">
+          <div class="grid grid-2">
+            <label class="field"><span>Insumos (USD/Ha)</span><input type="number" id="sim-insumos" value="350" step="1"></label>
+            <label class="field"><span>Labores (USD/Ha)</span><input type="number" id="sim-labores" value="120" step="1"></label>
+          </div>
+          <label class="field"><span>Tipo de alquiler</span>
+            <select id="sim-tipo-alquiler" onchange="App.refreshSimRentInputs()">
+              <option value="fixed">Fijo (USD/Ha)</option>
+              <option value="qq">Quintales (QQ)</option>
+              <option value="pct">A porcentaje (%)</option>
+            </select>
+          </label>
+          <div id="sim-rent-fixed"><label class="field"><span>Alquiler fijo (USD/Ha)</span><input type="number" id="sim-alq-fijo" value="150" step="1"></label></div>
+          <div id="sim-rent-qq" hidden>
+            <div class="grid grid-2">
+              <label class="field"><span>Quintales (QQ)</span><input type="number" id="sim-alq-qq" value="10" step="0.5"></label>
+              <label class="field"><span>Precio soja (USD/Ton)</span><input type="number" id="sim-alq-soja" value="280" step="1"></label>
+            </div>
+          </div>
+          <div id="sim-rent-pct" hidden><label class="field"><span>% Alquiler</span><input type="number" id="sim-alq-pct" value="25" step="0.5"></label></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><i class="ti ti-trending-up" aria-hidden="true"></i> Precios y rinde esperado</div>
+          <div class="grid grid-2">
+            <label class="field"><span>Precio esperado (USD/Ton)</span><input type="number" id="sim-precio-esp" value="280" step="1"></label>
+            <label class="field"><span>Gastos comerciales (%)</span><input type="number" id="sim-gc-pct" value="3.5" step="0.1"></label>
+          </div>
+          <label class="field"><span>Rinde esperado (Kg/Ha) — opcional, para estimar margen</span><input type="number" id="sim-rinde" value="3500" step="10"></label>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="result-panel">
+          <div class="result-head"><i class="ti ti-target-arrow" aria-hidden="true"></i> Resultado del escenario</div>
+          <div class="grid grid-2 grid-gap-sm">
+            <div class="ind-tile">
+              <span class="ind-tile-label">Indiferencia/Ha</span>
+              <strong class="ind-tile-value" id="sim-ind-ha">—</strong>
+              <span class="ind-tile-note">Kg/Ha para cubrir costos</span>
+            </div>
+            <div class="ind-tile">
+              <span class="ind-tile-label">Indiferencia total</span>
+              <strong class="ind-tile-value" id="sim-ind-tot">—</strong>
+              <span class="ind-tile-note">Kg en el lote</span>
+            </div>
+          </div>
+          <hr class="rule">
+          <div class="grid grid-2 grid-gap-sm">
+            <div class="metric"><span class="metric-label">Margen estimado/Ha</span><strong class="metric-value" id="sim-margen-ha">—</strong></div>
+            <div class="metric"><span class="metric-label">Margen total estimado</span><strong class="metric-value" id="sim-margen-tot">—</strong></div>
+          </div>
+          <p class="result-sub">El margen estimado usa el rinde esperado y el precio esperado de arriba.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><i class="ti ti-chart-line" aria-hidden="true"></i> Sensibilidad del margen</div>
+          <p class="chart-hint">Cómo cambia el margen/Ha si varía el precio o el rinde respecto al escenario base</p>
+          <div class="legend" id="leg-sens"></div>
+          <div class="chart-box"><canvas id="chart-sens" role="img" aria-label="Análisis de sensibilidad del margen">Sensibilidad del margen.</canvas></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" onclick="App.simToLote()"><i class="ti ti-arrow-right-circle" aria-hidden="true"></i> Convertir en lote real</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MODAL DETALLE DE LOTE ============ -->
+  <div id="modal-detalle" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="md-titulo">
+      <div class="modal-head">
+        <div>
+          <h2 class="modal-title" id="md-titulo">Lote</h2>
+          <div class="modal-sub"><span id="md-pill"></span> <span id="md-estado"></span></div>
+        </div>
+        <button class="btn btn-icon modal-close" onclick="App.closeDetail()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="modal-col">
+            <div class="card-head"><i class="ti ti-edit" aria-hidden="true"></i> Datos del lote <span class="card-head-note">editá y guardá</span></div>
+            <div class="grid grid-2">
+              <label class="field"><span>Nombre</span><input type="text" id="md-nombre"></label>
+              <label class="field"><span>Cereal</span>
+                <select id="md-cereal"><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Cebada</option><option>Avena</option><option>Girasol</option></select>
+              </label>
+            </div>
+            <div class="grid grid-3">
+              <label class="field"><span>Hectáreas</span><input type="number" id="md-hectareas" step="1"></label>
+              <label class="field"><span>% Participación</span><input type="number" id="md-participacion" step="1"></label>
+              <label class="field"><span>Campaña</span><input type="text" id="md-campana"></label>
+            </div>
+            <hr class="rule">
+            <div class="grid grid-2">
+              <label class="field"><span>Insumos (USD/Ha)</span><input type="number" id="md-insumos" step="1"></label>
+              <label class="field"><span>Labores (USD/Ha)</span><input type="number" id="md-labores" step="1"></label>
+            </div>
+            <label class="field"><span>Tipo de alquiler</span>
+              <select id="md-tipo-alquiler" onchange="App.refreshDetailRent()">
+                <option value="fixed">Fijo (USD/Ha)</option><option value="qq">Quintales (QQ)</option><option value="pct">A porcentaje (%)</option>
+              </select>
+            </label>
+            <div id="md-rent-fixed"><label class="field"><span>Alquiler fijo (USD/Ha)</span><input type="number" id="md-alq-fijo" step="1"></label></div>
+            <div id="md-rent-qq" hidden><div class="grid grid-2">
+              <label class="field"><span>Quintales (QQ)</span><input type="number" id="md-alq-qq" step="0.5"></label>
+              <label class="field"><span>Precio soja (USD/Ton)</span><input type="number" id="md-alq-soja" step="1"></label>
+            </div></div>
+            <div id="md-rent-pct" hidden><label class="field"><span>% Alquiler</span><input type="number" id="md-alq-pct" step="0.5"></label></div>
+            <hr class="rule">
+            <div class="grid grid-2">
+              <label class="field"><span>Precio esperado (USD/Ton)</span><input type="number" id="md-precio-esp" step="1"></label>
+              <label class="field"><span>Gastos comerciales (%)</span><input type="number" id="md-gc-pct" step="0.1"></label>
+            </div>
+          </div>
+
+          <div class="modal-col">
+            <div class="card-head"><i class="ti ti-lock-open" aria-hidden="true"></i> Cierre <span class="card-head-note">rinde y precio real</span></div>
+            <div class="grid grid-2">
+              <label class="field"><span>Rinde real (Kg/Ha)</span><input type="number" id="md-rinde-real" step="10"></label>
+              <label class="field"><span>Precio venta real (USD/Ton)</span><input type="number" id="md-precio-real" step="1"></label>
+            </div>
+            <div class="grid grid-2">
+              <label class="field"><span>Tipo gasto comercial</span>
+                <select id="md-gc-tipo" onchange="App.refreshDetailGc()"><option value="pct">%</option><option value="usd">USD/Ha</option><option value="ars">ARS/Ha</option></select>
+              </label>
+              <label class="field"><span id="md-gc-label">Gastos comerciales (%)</span><input type="number" id="md-gc-valor" step="0.1"></label>
+            </div>
+            <div id="md-ars-row" hidden><label class="field field-narrow"><span>Tipo de cambio (ARS/USD)</span><input type="number" id="md-tc-ars" step="10"></label></div>
+
+            <div class="result-panel result-panel-compact">
+              <div class="grid grid-2 grid-gap-sm">
+                <div class="ind-tile">
+                  <span class="ind-tile-label">Indiferencia/Ha</span>
+                  <strong class="ind-tile-value" id="md-ind-ha">—</strong>
+                </div>
+                <div class="ind-tile">
+                  <span class="ind-tile-label">Indiferencia total</span>
+                  <strong class="ind-tile-value" id="md-ind-tot">—</strong>
+                </div>
+              </div>
+              <div class="grid grid-2 grid-gap-sm" style="margin-top:8px">
+                <div class="metric"><span class="metric-label">Margen neto/Ha</span><strong class="metric-value" id="md-margen-ha">—</strong></div>
+                <div class="metric"><span class="metric-label">Margen total lote</span><strong class="metric-value" id="md-margen-tot">—</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-charts">
+          <div class="card">
+            <div class="card-head"><i class="ti ti-chart-donut-3" aria-hidden="true"></i> Composición de costos</div>
+            <div class="legend" id="md-leg-comp"></div>
+            <div class="chart-box chart-box-sm"><canvas id="md-chart-comp" role="img" aria-label="Composición de costos del lote">Composición.</canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><i class="ti ti-stairs" aria-hidden="true"></i> Cascada de rentabilidad</div>
+            <p class="chart-hint" id="md-wf-hint">Disponible al cerrar el lote (rinde + precio real)</p>
+            <div class="chart-box chart-box-sm"><canvas id="md-chart-wf" role="img" aria-label="Cascada de rentabilidad del lote">Cascada.</canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><i class="ti ti-chart-line" aria-hidden="true"></i> Sensibilidad del margen</div>
+            <p class="chart-hint">Margen/Ha si varía precio o rinde ±20%</p>
+            <div class="legend" id="md-leg-sens"></div>
+            <div class="chart-box chart-box-sm"><canvas id="md-chart-sens" role="img" aria-label="Sensibilidad del margen del lote">Sensibilidad.</canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn" onclick="App.closeDetail()">Cerrar</button>
+        <button class="btn btn-primary" id="md-guardar" onclick="App.saveDetail()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>Gestión Agrícola · los datos se guardan en la nube y se comparten con quien tenga el enlace</span>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+</body>
+</html>
